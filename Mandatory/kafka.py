@@ -46,9 +46,9 @@ def row_to_dict(cursor: sqlite3.Cursor, row: sqlite3.Row) -> dict:
             return data
 
 ################################################################################################################
-# Format JSON
+                                                # Format JSON
 ################################################################################################################
-@get('/provider/pharmacy/cpr/<cpr>/token/<token>/JSON')
+@get('/provider/patient/cpr/<cpr>/token/<token>/JSON')
 def _(token, cpr):
     try:
         conn = sqlite3.connect('Mandatory.db')
@@ -89,7 +89,7 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@post('/provider/pharmacy/token/<token>/JSON')
+@post('/provider/patient/token/<token>/JSON')
 def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -119,7 +119,7 @@ def _(token):
 
         response.content_type = 'application/json'
         message = request.json
-        conn.execute(f"INSERT INTO prescription (doc, medicin, amount) VALUES ('{message['doc']}', '{message['medicine']}', '{message['amount']}')")
+        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr) VALUES ('{message['doc']}', '{message['medicine']}', '{message['amount']}', {message['prescription_cpr']})")
         conn.commit()
         print(message)
 
@@ -129,7 +129,7 @@ def _(token):
         response.status = 400
         return str(ex)
 
-@put('/provider/pharmacy/cpr/<cpr>/token/<token>/JSON')
+@put('/provider/patient/cpr/<cpr>/token/<token>/JSON')
 def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -156,10 +156,30 @@ def _(token, cpr):
         response.status = 400
         print('exeption called!')
         return str(ex)
+
+@post('/provider/journal/token/<token>/JSON')
+def _(token):
+    try: 
+        conn = sqlite3.connect('Mandatory.db')
+
+        if token not in users:
+            raise Exception('Token is invalid')
+
+        response.content_type = 'application/json'
+        message = request.json
+        conn.execute(f"INSERT INTO journal (description, date_, given_medicine, patient_cpr) VALUES ('{message['description']}', '{message['date_']}', '{message['given_medicine']}', '{message['patient_cpr']}')")
+        conn.commit()
+        print(message)
+
+        return message
+    
+    except Exception as ex:
+        response.status = 400
+        return str(ex)
 ################################################################################################################
-# Format XML
+                                                # Format XML
 ################################################################################################################
-@get('/provider/pharmacy/cpr/<cpr>/token/<token>/XML')
+@get('/provider/patient/cpr/<cpr>/token/<token>/XML')
 def _(token, cpr):
     try:
         conn = sqlite3.connect('Mandatory.db')
@@ -172,7 +192,8 @@ def _(token, cpr):
         xml_list = []
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
+        #c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
+        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}'")
         result = c.fetchall()
 
         for msg in result:
@@ -217,7 +238,7 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@post('/provider/pharmacy/token/<token>/XML')
+@post('/provider/patient/token/<token>/XML')
 def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -247,7 +268,7 @@ def _(token):
         response.content_type = 'application/xml'
         message = request.body.getvalue()
         data = ET.fromstring(message)
-        conn.execute(f"INSERT INTO prescription (doc, medicine, amount) VALUES ('{data['doc']}', '{data['medicine']}', '{data['amount']}')")
+        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr) VALUES('{data[0][0].text}', '{data[0][1].text}', '{data[0][2].text}', {data[0][3].text})")
         conn.commit()
         print(message)
         
@@ -257,7 +278,7 @@ def _(token):
         response.status = 400
         return str(ex)
 
-@put('/provider/pharmacy/cpr/<cpr>/token/<token>/XML')
+@put('/provider/patient/cpr/<cpr>/token/<token>/XML')
 def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -285,10 +306,29 @@ def _(token, cpr):
         print('exeption called!')
         return str(ex)
 
+@post('/provider/journal/token/<token>/XML')
+def _(token):
+    try: 
+        conn = sqlite3.connect('Mandatory.db')
+
+        if token not in users:
+            raise Exception('Token is invalid')
+
+        response.content_type = 'application/xml'
+        message = request.body.getvalue()
+        data = ET.fromstring(message)
+        conn.execute(f"INSERT INTO journal (description, date_, given_medicine, patient_cpr) VALUES('{data[0][1].text}', '{data[0][0].text}', '{data[0][2].text}', '{data[0][3].text}')")
+        conn.commit()
+        return message
+    
+    except Exception as ex:
+        response.status = 400
+        return str(ex)
+
 ################################################################################################################
-# Format YAML
+                                                # Format YAML
 ################################################################################################################
-@get('/provider/pharmacy/cpr/<cpr>/token/<token>/YAML')
+@get('/provider/patient/cpr/<cpr>/token/<token>/YAML')
 def _(token, cpr):
     try:
         conn = sqlite3.connect('Mandatory.db')
@@ -300,7 +340,8 @@ def _(token, cpr):
         response.content_type = 'application/yaml'
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
+        #c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
+        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}'")
         result = c.fetchall()
 
         data = 'messages:' + '\n'
@@ -334,7 +375,7 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@post('/provider/pharmacy/token/<token>/YAML')
+@post('/provider/patient/token/<token>/YAML')
 def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -365,18 +406,16 @@ def _(token):
         response.content_type = 'application/yaml'
         message = request.body.getvalue()
         data = yaml.safe_load(message)
-        conn.execute(f"INSERT INTO prescription (doc, medicine, amount) VALUES ('{data['doc']}', '{data['medicine']}', '{data['amount']}')")
+        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr) VALUES ('{data['messages'][0]['doc']}', '{data['messages'][0]['medicine']}', '{data['messages'][0]['amount']}', {data['messages'][0]['prescription_cpr']})")
         conn.commit()
         print(message)
-        return message
-
         return message
     
     except Exception as ex:
         response.status = 400
         return str(ex)
 
-@put('/provider/pharmacy/cpr/<cpr>/token/<token>/YAML')
+@put('/provider/patient/cpr/<cpr>/token/<token>/YAML')
 def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -407,10 +446,11 @@ def _(token, cpr):
         response.status = 400
         print('exeption called!')
         return str(ex)
+
 ################################################################################################################
-# Format TSV
+                                                # Format TSV
 ################################################################################################################
-@get('/provider/pharmacy/cpr/<cpr>/token/<token>/TSV')
+@get('/provider/patient/cpr/<cpr>/token/<token>/TSV')
 def _(token, cpr):
     try:
         conn = sqlite3.connect('Mandatory.db')
@@ -421,7 +461,8 @@ def _(token, cpr):
         
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
+        #c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
+        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}'")
         result = c.fetchall()
         data = pd.DataFrame.from_records(result)
         return data.to_csv(sep='\t', index=False)
@@ -450,7 +491,7 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@post('/provider/pharmacy/token/<token>/TSV')
+@post('/provider/patient/token/<token>/TSV')
 def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -507,7 +548,7 @@ def _(token):
         response.status = 400
         return str(ex)
 
-@put('/provider/pharmacy/cpr/<cpr>/token/<token>/TSV')
+@put('/provider/patient/cpr/<cpr>/token/<token>/TSV')
 def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
@@ -540,9 +581,11 @@ def _(token, cpr):
         response.status = 400
         print('exeption called!')
         return str(ex)
+
 ################################################################################################################
-# Delete Pharmacy
-@delete('/provider/pharmacy/cpr/<cpr>/token/<token>/d')
+                                                # Delete Patient
+################################################################################################################
+@delete('/provider/patient/cpr/<cpr>/token/<token>/d')
 def _(token, cpr):
     try:
         conn = sqlite3.connect('Mandatory.db')
@@ -559,5 +602,7 @@ def _(token, cpr):
         return str(ex)
 
 
+################################################################################################################
+                                                #Run Server
 ################################################################################################################
 run(host='127.0.0.1', port=3000, debug=True, reloader=True)
