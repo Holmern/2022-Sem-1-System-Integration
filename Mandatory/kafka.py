@@ -447,6 +447,29 @@ def _(token, cpr):
         print('exeption called!')
         return str(ex)
 
+###################
+# YAML POST JOURNAL
+###################
+@post('/provider/journal/token/<token>/YAML')
+def _(token):
+    try: 
+        conn = sqlite3.connect('Mandatory.db')
+
+        if token not in users:
+            raise Exception('Token is invalid')
+
+        response.content_type = 'application/yaml'
+        message = request.body.getvalue()
+        data = yaml.safe_load(message)
+        conn.execute(f"INSERT INTO journal (description, date_, given_medicine, patient_cpr) VALUES ('{data['messages'][0]['description']}', '{data['messages'][0]['date_']}', '{data['messages'][0]['given_medicine']}', {data['messages'][0]['patient_cpr']})")
+        conn.commit()
+        print(message)
+        return message
+    
+    except Exception as ex:
+        response.status = 400
+        return str(ex)
+
 ################################################################################################################
                                                 # Format TSV
 ################################################################################################################
@@ -580,6 +603,39 @@ def _(token, cpr):
     except Exception as ex:
         response.status = 400
         print('exeption called!')
+        return str(ex)
+
+###################
+# TSV POST JOURNAL VIRKER IKKE
+###################
+@post('/provider/journal/token/<token>/TSV')
+def _(token):
+    try: 
+        conn = sqlite3.connect('Mandatory.db')
+
+        if token not in users:
+            raise Exception('Token is invalid')
+
+        data = request.body.getvalue()
+        data = data.decode("utf-8")
+        print(data)
+        with open('./output.tsv', 'wt') as out_file:
+            out_file.write(data)
+
+        file = pd.read_csv('output.tsv', sep='\t')
+
+        description = file['description'].to_list()
+        date_ = file['date_'].to_list()
+        given_medicine = file['given_medicine'].to_list()
+        amount = file['amount'].to_list()
+        patient_cpr = file['patient_cpr'].to_list()
+        print(str(description), str(date_), str(given_medicine), str(amount), patient_cpr)
+        conn.execute(f"INSERT INTO journal (description, date_, given_medicine, amount, patient_cpr) VALUES ('{description[0]}', '{date_[0]}', '{given_medicine[0]}', '{amount[0]}', '{patient_cpr[0]}')")
+        conn.commit()
+        return data
+    
+    except Exception as ex:
+        response.status = 400
         return str(ex)
 
 ################################################################################################################
