@@ -5,6 +5,8 @@ import pandas as pd
 import sqlite3
 import xml.etree.ElementTree as ET
 
+# 505 COMMENT
+
 users = {
     '12345':{'id':'1', 'email':'@a', 'token':'12345'},
     '67890':{'id':'2', 'email':'@a', 'token':'67890'},
@@ -414,7 +416,9 @@ def _(token):
     except Exception as ex:
         response.status = 400
         return str(ex)
-
+########
+# Put Patient
+########
 @put('/provider/patient/cpr/<cpr>/token/<token>/YAML')
 def _(token, cpr):
     try: 
@@ -500,6 +504,7 @@ def _(token, cpr):
         conn = sqlite3.connect('Mandatory.db')
         '''if limit == 0:
             raise Exception('Limit cannot be 0')'''
+            ### CHANGE TO CHECK IS IN DATABASE FOR A SPECIFIC USER
         if token not in users:
             raise Exception('Token is invalid')
         
