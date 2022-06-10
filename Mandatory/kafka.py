@@ -115,7 +115,7 @@ def _(token, cpr, limit):
         response.content_type = 'application/json'
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}'")
+        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
         result = c.fetchall()
         return json.dumps(result)
     
@@ -232,7 +232,7 @@ def _(token, cpr, limit):
         c = conn.cursor()
         c.row_factory = row_to_dict
         #c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
-        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}'")
+        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}' LIMIT {limit}")
         result = c.fetchall()
 
         for msg in result:
@@ -262,7 +262,7 @@ def _(token, cpr, limit):
         xml_list = []
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}'")
+        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
         result = c.fetchall()
 
         for msg in result:
@@ -386,7 +386,7 @@ def _(token, cpr, limit):
         c = conn.cursor()
         c.row_factory = row_to_dict
         #c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
-        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}'")
+        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}' LIMIT {limit}")
         result = c.fetchall()
 
         data = 'messages:' + '\n'
@@ -410,7 +410,7 @@ def _(token, cpr, limit):
         response.content_type = 'application/yaml'
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}'")
+        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
         result = c.fetchall()
 
         data = 'messages:' + '\n'
@@ -538,7 +538,7 @@ def _(token, cpr, limit):
         c = conn.cursor()
         c.row_factory = row_to_dict
         #c.execute(f"SELECT * FROM patient WHERE cpr='{cpr}'")
-        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}'")
+        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}' LIMIT {limit}")
         result = c.fetchall()
         data = pd.DataFrame.from_records(result)
         return data.to_csv(sep='\t', index=False)
@@ -560,7 +560,7 @@ def _(token, cpr, limit):
         
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}'")
+        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
         result = c.fetchall()
         data = pd.DataFrame.from_records(result)
         return data.to_csv(sep='\t', index=False)
@@ -721,7 +721,7 @@ def _(token, cpr):
         return str(ex)
 
 ################################################################################################################
-                                                # Delete Prescription After 1 Year
+                                                # Delete Prescription
 ################################################################################################################
 scheduler = BackgroundScheduler()
 
