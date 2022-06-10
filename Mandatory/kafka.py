@@ -1,5 +1,9 @@
 from bottle import get, run, response, post, request, delete, put
-import json, yaml
+import json, yaml, time
+from datetime import date
+import schedule
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from dict2xml import dict2xml
 import pandas as pd
 import sqlite3
@@ -151,7 +155,7 @@ def _(token):
 
         response.content_type = 'application/json'
         message = request.json
-        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr) VALUES ('{message['doc']}', '{message['medicine']}', '{message['amount']}', {message['prescription_cpr']})")
+        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr, expiration_date) VALUES ('{message['doc']}', '{message['medicine']}', '{message['amount']}', {message['prescription_cpr']}, '{message['expiration_date']}')")
         conn.commit()
         print(message)
 
@@ -299,14 +303,14 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        pharma_token = get_pharma_token()
-        if token not in pharma_token:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/xml'
         message = request.body.getvalue()
         data = ET.fromstring(message)
-        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr) VALUES('{data[0][0].text}', '{data[0][1].text}', '{data[0][2].text}', {data[0][3].text})")
+        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr, expiration_date) VALUES('{data[0][0].text}', '{data[0][1].text}', '{data[0][2].text}', {data[0][3].text}, '{data[0][4].text}')")
         conn.commit()
         print(message)
         
@@ -443,14 +447,14 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        pharma_token = get_pharma_token()
-        if token not in pharma_token:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/yaml'
         message = request.body.getvalue()
         data = yaml.safe_load(message)
-        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr) VALUES ('{data['messages'][0]['doc']}', '{data['messages'][0]['medicine']}', '{data['messages'][0]['amount']}', {data['messages'][0]['prescription_cpr']})")
+        conn.execute(f"INSERT INTO prescription (doc, medicine, amount, prescription_cpr, expiration_date) VALUES ('{data['messages'][0]['doc']}', '{data['messages'][0]['medicine']}', '{data['messages'][0]['amount']}', {data['messages'][0]['prescription_cpr']}, '{data['messages'][0]['expiration_date']}')")
         conn.commit()
         print(message)
         return message
@@ -544,7 +548,7 @@ def _(token, cpr, limit):
         return str(ex)
 
 @get('/provider/prescription/cpr/<cpr>/limit/<limit>/token/<token>/TSV')
-def _(token, cpr):
+def _(token, cpr, limit):
     try:
         conn = sqlite3.connect('Mandatory.db')
         if limit == '0':
@@ -601,8 +605,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        pharma_token = get_pharma_token()
-        if token not in pharma_token:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         data = request.body.getvalue()
@@ -616,7 +620,9 @@ def _(token):
         doc = file['doc'].to_list()
         medicine = file['medicine'].to_list()
         amount = file['amount'].to_list()
-        conn.execute(f"INSERT INTO prescription (doc, medicine, amount) VALUES ('{doc[0]}', '{medicine[0]}', '{amount[0]}')")
+        prescription_cpr = file['prescription_cpr'].to_list()
+        expiration_date = file['expiration_date'].to_list()
+        conn.execute(f"INSERT INTO prescription (doc, medicine, amount,prescription_cpr, expiration_date) VALUES ('{doc[0]}', '{medicine[0]}', '{amount[0]}', '{prescription_cpr[0]}', '{expiration_date[0]}')")
         conn.commit()
         return data
     
@@ -660,7 +666,7 @@ def _(token, cpr):
         return str(ex)
 
 ###################
-# TSV POST JOURNAL VIRKER IKKE
+# TSV POST JOURNAl
 ###################
 @post('/provider/journal/token/<token>/TSV')
 def _(token):
@@ -706,13 +712,43 @@ def _(token, cpr):
             raise Exception('Token is invalid')
         
         c = conn.cursor()
-        c.execute(f"DELETE FROM patient WHERE cpr={cpr}")
+        c.execute(f"DELETE FROM patient WHERE cpr='{cpr}'")
+        conn.commit()
         return f'Patient {cpr} deleted!'
     
     except Exception as ex:
         response.status = 400
         return str(ex)
 
+################################################################################################################
+                                                # Delete Prescription After 1 Year
+################################################################################################################
+scheduler = BackgroundScheduler()
+
+@scheduler.scheduled_job(IntervalTrigger(days=1))
+def delete_prescriptions():
+    try:
+        today = date.today()
+        d = today.strftime("%Y-%m-%d")
+        print(d)
+        conn = sqlite3.connect('Mandatory.db')
+        c = conn.cursor()
+        #c.row_factory = row_to_dict
+        c.execute(f"SELECT * FROM prescription WHERE expiration_date='{d}'")
+        result = c.fetchall()
+        print(result)
+
+        if result:
+            c.execute(f"DELETE FROM prescription WHERE expiration_date='{d}'")
+            conn.commit()
+            return 'Prescritons deleted'
+        else:
+            return 'No prescritions deleted'
+        
+    except Exception as ex:
+        return ex
+
+scheduler.start()
 
 ################################################################################################################
                                                 #Run Server
