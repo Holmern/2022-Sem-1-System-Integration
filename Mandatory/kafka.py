@@ -47,22 +47,49 @@ def row_to_dict(cursor: sqlite3.Cursor, row: sqlite3.Row) -> dict:
                 data[col[0]] = row[idx]
             return data
 
+def get_doc_token():
+    conn = sqlite3.connect('Mandatory.db')
+    c = conn.cursor()
+    c.row_factory = row_to_dict
+    c.execute(f"SELECT token FROM doctor")
+    doctor_token = c.fetchall()
+    #doc_token = doctor_token[0]['token']
+    doc_token = list(doctor_token[0].values())
+    return doc_token
+
+def get_pharma_token():
+    conn = sqlite3.connect('Mandatory.db')
+    c = conn.cursor()
+    c.row_factory = row_to_dict
+    c.execute(f"SELECT token FROM pharma")
+    pharma_token = c.fetchall()
+    pharmacy_token = list(pharma_token[0].values())
+    return pharmacy_token
+
 ################################################################################################################
                                                 # Format JSON
 ################################################################################################################
-@get('/provider/patient/cpr/<cpr>/token/<token>/JSON')
-def _(token, cpr):
+@get('/provider/patient/cpr/<cpr>/limit/<limit>/token/<token>/JSON')
+def _(token, cpr, limit):
+
     try:
         conn = sqlite3.connect('Mandatory.db')
         '''if limit == 0:
             raise Exception('Limit cannot be 0')'''
-        if token not in users:
+        #print(doctor_token[0]['token'])
+        print(type(limit))
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
+
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
+        
         
         response.content_type = 'application/json'
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}'")
+        c.execute(f"SELECT * FROM patient JOIN journal ON patient.cpr = journal.patient_cpr WHERE patient.cpr='{cpr}' LIMIT {limit}")
         #c.execute(f"SELECT * FROM patient WHERE cpr in (SELECT date_ FROM journal WHERE patient_cpr='{cpr}')")
         result = c.fetchall()
         return json.dumps(result)
@@ -71,19 +98,20 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@get('/provider/prescription/cpr/<cpr>/token/<token>/JSON')
-def _(token, cpr):
+@get('/provider/prescription/cpr/<cpr>/limit/<limit>/token/<token>/JSON')
+def _(token, cpr, limit):
     try:
         conn = sqlite3.connect('Mandatory.db')
-        '''if limit == 0:
-            raise Exception('Limit cannot be 0')'''
-        if token not in users:
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
+        pharma_token = get_pharma_token()
+        if token not in pharma_token:
             raise Exception('Token is invalid')
         
         response.content_type = 'application/json'
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}'")
+        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}'")
         result = c.fetchall()
         return json.dumps(result)
     
@@ -96,7 +124,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/json'
@@ -116,7 +145,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/json'
@@ -136,7 +166,8 @@ def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/json'
@@ -164,7 +195,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/json'
@@ -181,13 +213,14 @@ def _(token):
 ################################################################################################################
                                                 # Format XML
 ################################################################################################################
-@get('/provider/patient/cpr/<cpr>/token/<token>/XML')
-def _(token, cpr):
+@get('/provider/patient/cpr/<cpr>/limit/<limit>/token/<token>/XML')
+def _(token, cpr, limit):
     try:
         conn = sqlite3.connect('Mandatory.db')
-        '''if limit == 0:
-            raise Exception('Limit cannot be 0')'''
-        if token not in users:
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
         
         response.content_type = 'application/xml'
@@ -211,20 +244,21 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@get('/provider/prescription/cpr/<cpr>/token/<token>/XML')
-def _(token, cpr):
+@get('/provider/prescription/cpr/<cpr>/limit/<limit>/token/<token>/XML')
+def _(token, cpr, limit):
     try:
         conn = sqlite3.connect('Mandatory.db')
-        '''if limit == 0:
-            raise Exception('Limit cannot be 0')'''
-        if token not in users:
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
+        pharma_token = get_pharma_token()
+        if token not in pharma_token:
             raise Exception('Token is invalid')
         
         response.content_type = 'application/xml'
         xml_list = []
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}'")
+        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}'")
         result = c.fetchall()
 
         for msg in result:
@@ -245,7 +279,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/xml'
@@ -264,7 +299,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        pharma_token = get_pharma_token()
+        if token not in pharma_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/xml'
@@ -285,7 +321,8 @@ def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/xml'
@@ -313,7 +350,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/xml'
@@ -330,13 +368,14 @@ def _(token):
 ################################################################################################################
                                                 # Format YAML
 ################################################################################################################
-@get('/provider/patient/cpr/<cpr>/token/<token>/YAML')
-def _(token, cpr):
+@get('/provider/patient/cpr/<cpr>/limit/<limit>/token/<token>/YAML')
+def _(token, cpr, limit):
     try:
         conn = sqlite3.connect('Mandatory.db')
-        '''if limit == 0:
-            raise Exception('Limit cannot be 0')'''
-        if token not in users:
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
         
         response.content_type = 'application/yaml'
@@ -354,13 +393,14 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@get('/provider/prescription/cpr/<cpr>/token/<token>/YAML')
-def _(token, cpr):
+@get('/provider/prescription/cpr/<cpr>/limit/<limit>/token/<token>/YAML')
+def _(token, cpr, limit):
     try:
         conn = sqlite3.connect('Mandatory.db')
-        '''if limit == 0:
-            raise Exception('Limit cannot be 0')'''
-        if token not in users:
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
+        pharma_token = get_pharma_token()
+        if token not in pharma_token:
             raise Exception('Token is invalid')
         
         response.content_type = 'application/yaml'
@@ -382,7 +422,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/yaml'
@@ -402,7 +443,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        pharma_token = get_pharma_token()
+        if token not in pharma_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/yaml'
@@ -424,7 +466,8 @@ def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/yaml'
@@ -459,7 +502,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         response.content_type = 'application/yaml'
@@ -475,15 +519,16 @@ def _(token):
         return str(ex)
 
 ################################################################################################################
-                                                # Format TSV
+                                                # Format TSV https://jsonformatter.org/json-to-tsv
 ################################################################################################################
-@get('/provider/patient/cpr/<cpr>/token/<token>/TSV')
-def _(token, cpr):
+@get('/provider/patient/cpr/<cpr>/limit/<limit>/token/<token>/TSV')
+def _(token, cpr, limit):
     try:
         conn = sqlite3.connect('Mandatory.db')
-        '''if limit == 0:
-            raise Exception('Limit cannot be 0')'''
-        if token not in users:
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
         
         c = conn.cursor()
@@ -498,14 +543,15 @@ def _(token, cpr):
         response.status = 400
         return str(ex)
 
-@get('/provider/prescription/cpr/<cpr>/token/<token>/TSV')
+@get('/provider/prescription/cpr/<cpr>/limit/<limit>/token/<token>/TSV')
 def _(token, cpr):
     try:
         conn = sqlite3.connect('Mandatory.db')
-        '''if limit == 0:
-            raise Exception('Limit cannot be 0')'''
+        if limit == '0':
+            raise Exception('Limit must be greater than 0')
             ### CHANGE TO CHECK IS IN DATABASE FOR A SPECIFIC USER
-        if token not in users:
+        pharma_token = get_pharma_token()
+        if token not in pharma_token:
             raise Exception('Token is invalid')
         
         c = conn.cursor()
@@ -524,7 +570,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         data = request.body.getvalue()
@@ -554,7 +601,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        pharma_token = get_pharma_token()
+        if token not in pharma_token:
             raise Exception('Token is invalid')
 
         data = request.body.getvalue()
@@ -581,7 +629,8 @@ def _(token, cpr):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         data = request.body.getvalue()
@@ -618,7 +667,8 @@ def _(token):
     try: 
         conn = sqlite3.connect('Mandatory.db')
 
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
 
         data = request.body.getvalue()
@@ -635,7 +685,7 @@ def _(token):
         amount = file['amount'].to_list()
         patient_cpr = file['patient_cpr'].to_list()
         print(str(description), str(date_), str(given_medicine), str(amount), patient_cpr)
-        conn.execute(f"INSERT INTO journal (description, date_, given_medicine, amount, patient_cpr) VALUES ('{description[0]}', '{date_[0]}', '{given_medicine[0]}', '{amount[0]}', '{patient_cpr[0]}')")
+        conn.execute(f"INSERT INTO journal (description, date_, given_medicine, patient_cpr, amount) VALUES ('{description[0]}', '{date_[0]}', '{given_medicine[0]}', '{patient_cpr[0]}', '{amount[0]}')")
         conn.commit()
         return data
     
@@ -651,7 +701,8 @@ def _(token, cpr):
     try:
         conn = sqlite3.connect('Mandatory.db')
         
-        if token not in users:
+        doc_token = get_doc_token()
+        if token not in doc_token:
             raise Exception('Token is invalid')
         
         c = conn.cursor()

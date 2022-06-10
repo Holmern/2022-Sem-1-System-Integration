@@ -1,2 +1,2 @@
-description date_ given_medicine patient_cpr
-Migrane 20/05/2022 Cola 1122334421
+description	date_	given_medicine	patient_cpr	amount
+Headache	01/01/2022	Morphine	106981234	400mg
