@@ -290,7 +290,7 @@ def _(token):
         response.content_type = 'application/xml'
         message = request.body.getvalue()
         data = ET.fromstring(message)
-        conn.execute(f"INSERT INTO patient (id, name, cpr, adress, access) VALUES ('{data[0][1].text}', '{data[0][2].text}', '{data[0][3].text}', '{data[0][4].text}', '{data[0][0].text}')")
+        conn.execute(f"INSERT INTO patient (id, name, cpr, adress, access) VALUES ('{data[0][0].text}', '{data[0][1].text}', '{data[0][2].text}', '{data[0][3].text}', '{data[0][4].text}')")
         conn.commit()
         return message
     
@@ -410,7 +410,7 @@ def _(token, cpr, limit):
         response.content_type = 'application/yaml'
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
+        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
         result = c.fetchall()
 
         data = 'messages:' + '\n'
@@ -560,7 +560,7 @@ def _(token, cpr, limit):
         
         c = conn.cursor()
         c.row_factory = row_to_dict
-        c.execute(f"SELECT * FROM prescription WHERE cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
+        c.execute(f"SELECT * FROM prescription WHERE prescription_cpr='{cpr}' ORDER BY prescription_id DESC LIMIT {limit}")
         result = c.fetchall()
         data = pd.DataFrame.from_records(result)
         return data.to_csv(sep='\t', index=False)
